@@ -1,0 +1,13 @@
+Flask
+openai
+python-dotenv
+requests
+Pillow
+numpy
+pandas
+scikit-learn
+glob2
+python-magic
+beautifulsoup4
+lxml
+markdown2

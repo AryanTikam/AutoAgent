@@ -1,20 +1,28 @@
-# Use the official Python image as the base
+# Use Python 3.12.3 as base image
 FROM python:3.12.3
 
-# Set the working directory in the container
+# Set working directory
 WORKDIR /app
 
-# Copy all files from the project directory to /app in the container
-COPY . /app
+# Copy requirements first to leverage Docker cache
+COPY requirements.txt .
 
-# Create the /data directory and set permissions
-RUN mkdir -p /data/logs /data/docs && chmod -R 755 /data
-
-# Install required dependencies
+# Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Expose port 8000 for Flask API
+# Copy all application files
+COPY . .
+
+# Create data directory and ensure proper permissions
+RUN mkdir -p /data /data/logs /data/docs && \
+    chmod 777 /data /data/logs /data/docs
+
+# Generate initial test data
+COPY setup_data.py .
+RUN python setup_data.py
+
+# Expose the port the app runs on
 EXPOSE 8000
 
-# Run the Flask app with unbuffered output
-CMD ["python", "-u", "app.py"]
+# Command to run the app
+CMD ["python", "app.py"]

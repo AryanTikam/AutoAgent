@@ -22,7 +22,7 @@ def call_llm(prompt, max_retries=3):
                     {"role": "system", "content": "You are a helpful assistant focused on data processing tasks."},
                     {"role": "user", "content": prompt}
                 ],
-                temperature=0.3  # Lower temperature for more deterministic responses
+                temperature=0.3
             )
             return response.choices[0].message.content
         except Exception as e:
@@ -33,13 +33,14 @@ def call_llm(prompt, max_retries=3):
 def validate_file_path(path):
     """
     Validates that the file path is within allowed boundaries.
+    In Docker, paths are absolute /data paths.
     """
-    if not path.startswith("/data/"):
+    if not path.startswith('/data/'):
         raise ValueError("Access denied: Can only access files in /data directory")
     
     # Prevent directory traversal attacks
     normalized_path = os.path.normpath(path)
-    if not normalized_path.startswith("/data/"):
+    if not normalized_path.startswith('/data/'):
         raise ValueError("Access denied: Invalid path")
     
     return normalized_path

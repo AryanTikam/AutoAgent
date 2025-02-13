@@ -1,17 +1,44 @@
+# Web Framework
 Flask
+
+# OpenAI API for LLM Calls
 openai
 python-dotenv
+
+# HTTP Requests
 requests
-Pillow
+
+# File and Data Handling
 numpy
 pandas
+jsonschema  # To validate JSON structures
+
+# Machine Learning (For Finding Similar Comments)
 scikit-learn
+
+# File and Directory Operations
 glob2
 python-magic
-beautifulsoup4
-lxml
+
+# Markdown Processing
 markdown2
 
+# Web Scraping
+beautifulsoup4
+lxml
 
+# Image Processing
+Pillow
 
+# Audio Processing & Transcription
+pydub
+speechrecognition
 
+# Database Handling
+duckdb  # Lightweight database engine
+
+# Git Handling
+GitPython  # For cloning and committing GitHub repositories
+
+# Container and Automation Utilities
+uv

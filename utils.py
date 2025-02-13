@@ -30,17 +30,20 @@ def call_llm(prompt, max_retries=3):
                 raise RuntimeError(f"Failed to get LLM response after {max_retries} attempts: {str(e)}")
             continue
 
-def validate_file_path(path):
+def validate_file_path(path, allow_write=False):
     """
-    Validates that the file path is within allowed boundaries.
-    In Docker, paths are absolute /data paths.
+    Validates that the file path is within /data/ and prevents unauthorized access.
+    `allow_write` controls whether the path can be written to.
     """
-    if not path.startswith('/data/'):
-        raise ValueError("Access denied: Can only access files in /data directory")
+    base_dir = "/data/"
     
-    # Prevent directory traversal attacks
+    # Ensure the path is within /data/
     normalized_path = os.path.normpath(path)
-    if not normalized_path.startswith('/data/'):
-        raise ValueError("Access denied: Invalid path")
+    if not normalized_path.startswith(base_dir):
+        raise ValueError(f"Access denied: {path} is outside the allowed directory")
+
+    # Prevent deletions by ensuring no file is being removed
+    if not allow_write and not os.path.exists(normalized_path):
+        raise ValueError(f"Access denied: {path} does not exist")
     
     return normalized_path

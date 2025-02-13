@@ -1,6 +1,14 @@
 # Use Python 3.12.3 as base image
 FROM python:3.12.3
 
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    ffmpeg \
+    git \
+    nodejs \
+    npm \
+    && rm -rf /var/lib/apt/lists/*
+
 # Set working directory
 WORKDIR /app
 

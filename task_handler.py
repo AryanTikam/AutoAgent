@@ -232,42 +232,28 @@ def process_image(image_path="/data/input.jpg"):
     """Compress or resize an image and save it to /data/output.jpg"""
     try:
         output_path = "/data/output.jpg"
-
-        # Ensure the /data directory exists
         os.makedirs("/data", exist_ok=True)
 
-        # Validate file existence and permissions
         if not os.path.exists(image_path):
             raise FileNotFoundError(f"Image file not found: {image_path}")
 
-        if not os.access(image_path, os.R_OK):
-            raise PermissionError(f"Cannot read image file: {image_path}")
-
-        print(f"Processing image: {image_path}")
-
         with Image.open(image_path) as img:
-            # Convert to RGB if needed
             if img.mode not in ('RGB', 'RGBA'):
                 img = img.convert('RGB')
 
-            # Resize using LANCZOS resampling
-            img.thumbnail((800, 600), Image.Resampling.LANCZOS)
-
-            # Save output file
+            # Resize to exact 800x600 instead of using .thumbnail()
+            img = img.resize((800, 600), Image.LANCZOS)
             img.save(output_path, "JPEG", quality=80, optimize=True)
 
-        # Ensure the file is readable by the API
+        # Ensure readable permissions
         os.chmod(output_path, 0o644)
 
-        # Confirm the file was created
         if not os.path.exists(output_path):
             raise RuntimeError("Failed to create output file")
 
-        print(f"Image successfully saved to: {output_path}")
         return "Image processed successfully"
 
     except Exception as e:
-        print(f"Error processing image: {e}")
         return f"Error processing image: {str(e)}"
 
 def transcribe_audio(audio_path):

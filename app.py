@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 import os
 from task_handler import handle_task
 from utils import validate_file_path
+import mimetypes
 
 app = Flask(__name__)
 
@@ -29,16 +30,27 @@ def read_file():
         file_path = request.args.get('path')
         if not file_path:
             return jsonify({"error": "File path is required"}), 400
-            
-        # Validate path
+
         validated_path = validate_file_path(file_path)
-        
+
         if not os.path.exists(validated_path):
             return jsonify({"error": "File not found"}), 404
 
-        with open(validated_path, "r") as file:
-            return file.read(), 200
-            
+        # Detect MIME type
+        mime_type, _ = mimetypes.guess_type(validated_path)
+
+        # Read as binary if it's an image or unknown format
+        read_mode = "rb" if mime_type and mime_type.startswith("image") else "r"
+
+        with open(validated_path, read_mode) as file:
+            file_content = file.read()
+
+        # Return binary data if it's an image
+        if read_mode == "rb":
+            return file_content, 200, {'Content-Type': mime_type or 'application/octet-stream'}
+
+        return file_content, 200
+
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
     except Exception as e:

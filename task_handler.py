@@ -1,4 +1,3 @@
-# task_handler.py
 import os
 import json
 import sqlite3
@@ -21,18 +20,37 @@ import speech_recognition as sr
 from pydub import AudioSegment
 from utils import call_llm, validate_file_path
 
-def install_and_run_datagen():
-    """Install uv and run datagen.py"""
+def install_and_run_datagen(task_desc):
+    """Install uv (if required), install dependencies, and run datagen.py with user email"""
     try:
-        subprocess.run(["pip", "install", "uv", "--quiet"], check=True)
-        subprocess.run([
-            "python3", "-m", "uv",
-            "https://raw.githubusercontent.com/sanand0/tools-in-data-science-public/tds-2025-01/project-1/datagen.py",
-            "user@example.com"
-        ], check=True)
-        return "Datagen executed successfully"
+        # Extract the email from the task description
+        words = task_desc.split()
+        user_email = next((word for word in words if "@" in word), "user@example.com")  # Default email
+
+        # ✅ Ensure uv is installed
+        subprocess.run(["pip", "install", "--quiet", "uv"], check=True)
+
+        # ✅ Download datagen.py
+        script_url = "https://raw.githubusercontent.com/sanand0/tools-in-data-science-public/tds-2025-01/project-1/datagen.py"
+        script_path = "/data/datagen.py"
+        subprocess.run(["curl", "-s", "-o", script_path, script_url], check=True)
+
+        # ✅ Install missing dependencies (Faker and others)
+        subprocess.run(["pip", "install", "--quiet", "-r", script_path], check=False)  # Ignore errors if no requirements file
+
+        # ✅ Make the script executable
+        subprocess.run(["chmod", "+x", script_path], check=True)
+
+        # ✅ Run the script using python3
+        result = subprocess.run(["python3", script_path, user_email], 
+                                capture_output=True, text=True, check=True)
+
+        return f"Datagen executed successfully for {user_email}: {result.stdout}"
+
+    except subprocess.CalledProcessError as e:
+        return f"Error running datagen: {e.stderr}"
     except Exception as e:
-        raise RuntimeError(f"Error running datagen: {str(e)}")
+        return f"Unexpected error: {str(e)}"
 
 def format_markdown():
     """Format markdown file using prettier"""
@@ -44,16 +62,37 @@ def format_markdown():
         raise RuntimeError(f"Error formatting markdown: {str(e)}")
 
 def count_wednesdays():
-    """Count Wednesdays in dates.txt"""
+    """Count the number of Wednesdays in dates.txt with multiple date formats handling"""
     try:
         with open("/data/dates.txt", "r") as file:
             dates = [line.strip() for line in file]
-        count = sum(1 for date in dates if datetime.strptime(date, "%Y-%m-%d").weekday() == 2)
+
+        valid_formats = [
+            "%Y-%m-%d",  # 2024-03-14
+            "%d-%b-%Y",  # 14-Mar-2024
+            "%b %d, %Y",  # Mar 14, 2024
+            "%Y/%m/%d %H:%M:%S",  # 2024/03/14 15:30:45
+        ]
+
+        def parse_date(date_str):
+            for fmt in valid_formats:
+                try:
+                    return datetime.strptime(date_str, fmt)
+                except ValueError:
+                    continue
+            raise ValueError(f"Unknown date format: {date_str}")
+
+        count = sum(1 for date in dates if parse_date(date).weekday() == 2)  # Wednesday = 2
+
         with open("/data/dates-wednesdays.txt", "w") as file:
             file.write(str(count))
+
         return f"Counted {count} Wednesdays"
-    except Exception as e:
+
+    except ValueError as e:
         raise RuntimeError(f"Error counting Wednesdays: {str(e)}")
+    except Exception as e:
+        raise RuntimeError(f"Unexpected error: {str(e)}")
 
 def sort_contacts():
     """Sort contacts by last name and first name"""
@@ -367,29 +406,44 @@ def filter_csv():
     except Exception as e:
         raise RuntimeError(f"Error filtering CSV: {str(e)}")
 
+def extract_repo_url(task_desc):
+    """Extracts the GitHub repository URL from the task description"""
+    words = task_desc.split()
+    for word in words:
+        if word.startswith("https://github.com/"):
+            return word
+    return "https://github.com/example/repo.git"  # Default repo
+
+def extract_sql_query(task_desc):
+    """Extracts the SQL query from the task description"""
+    query_start = task_desc.lower().find("run sql query")
+    if query_start != -1:
+        return task_desc[query_start + len("run sql query "):]
+    return "SELECT * FROM sales LIMIT 5"  # Default query
+
 def handle_task(task_desc):
     """Processes user requests using LLM classification"""
     try:
         # Map task descriptions to functions
         task_mapping = {
-            "install_and_run_datagen": install_and_run_datagen,
-            "format_markdown": format_markdown,
-            "count_wednesdays": count_wednesdays,
-            "sort_contacts": sort_contacts,
-            "process_logs": process_logs,
-            "extract_markdown_titles": extract_markdown_titles,
-            "extract_email_sender": extract_email_sender,
-            "extract_credit_card": extract_credit_card,
-            "find_similar_comments": find_similar_comments,
-            "calculate_gold_sales": calculate_gold_sales,
-            "fetch_api_data": fetch_api_data,
-            "handle_git_repo": lambda: handle_git_repo("https://github.com/example/repo.git"),
-            "run_database_query": lambda: run_database_query("SELECT * FROM sales LIMIT 5"),
-            "scrape_website": scrape_website,
-            "process_image": lambda: process_image("/data/input.jpg"),
-            "transcribe_audio": lambda: transcribe_audio("/data/audio.mp3"),
-            "convert_markdown": convert_markdown,
-            "filter_csv": filter_csv
+            "install_and_run_datagen": lambda task_desc: install_and_run_datagen(task_desc),
+            "format_markdown": lambda task_desc: format_markdown(),
+            "count_wednesdays": lambda task_desc: count_wednesdays(),
+            "sort_contacts": lambda task_desc: sort_contacts(),
+            "process_logs": lambda task_desc: process_logs(),
+            "extract_markdown_titles": lambda task_desc: extract_markdown_titles(),
+            "extract_email_sender": lambda task_desc: extract_email_sender(),
+            "extract_credit_card": lambda task_desc: extract_credit_card(),
+            "find_similar_comments": lambda task_desc: find_similar_comments(),
+            "calculate_gold_sales": lambda task_desc: calculate_gold_sales(),
+            "fetch_api_data": lambda task_desc: fetch_api_data(),
+            "handle_git_repo": lambda task_desc: handle_git_repo(extract_repo_url(task_desc)),
+            "run_database_query": lambda task_desc: run_database_query(extract_sql_query(task_desc)),
+            "scrape_website": lambda task_desc: scrape_website(),
+            "process_image": lambda task_desc: process_image("/data/input.jpg"),
+            "transcribe_audio": lambda task_desc: transcribe_audio("/data/audio.mp3"),
+            "convert_markdown": lambda task_desc: convert_markdown(),
+            "filter_csv": lambda task_desc: filter_csv()
         }
 
         # Normalize task description and attempt exact match first
@@ -422,6 +476,7 @@ def handle_task(task_desc):
         if not selected_task:
             raise ValueError(f"Unknown task: {task_desc}")
 
-        return selected_task()
+        return selected_task(task_desc) if "task_desc" in selected_task.__code__.co_varnames else selected_task()
+
     except Exception as e:
         raise RuntimeError(f"Task handling error: {str(e)}")

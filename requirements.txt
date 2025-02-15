@@ -42,3 +42,4 @@ GitPython  # For cloning and committing GitHub repositories
 
 # Container and Automation Utilities
 uv
+faker

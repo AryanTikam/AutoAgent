@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install -y \
     git \
     nodejs \
     npm \
+    pip \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
@@ -24,10 +25,6 @@ COPY . .
 # Create data directory and ensure proper permissions
 RUN mkdir -p /data /data/logs /data/docs && \
     chmod 777 /data /data/logs /data/docs
-
-# Generate initial test data
-COPY setup_data.py .
-RUN python setup_data.py
 
 # Expose the port the app runs on
 EXPOSE 8000

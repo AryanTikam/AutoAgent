@@ -17,8 +17,10 @@ def run_task():
         return jsonify({"error": "Task description is required"}), 400
 
     try:
+        # ✅ Let `handle_task()` take care of dynamic input handling
         result = handle_task(task_desc)
         return jsonify({"message": "Task completed", "result": result}), 200
+
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
     except Exception as e:
